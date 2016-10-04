@@ -116,6 +116,7 @@ public class ScreenSharingFragment extends Fragment implements AccPackSession.Se
             mAnnotationsView = null;
             stop();
             removeScreensharingBar();
+            mListener.onClosed();
         }
         addLogEvent(OpenTokConfig.LOG_ACTION_CLOSE, OpenTokConfig.LOG_VARIATION_SUCCESS);
     }
@@ -155,13 +156,10 @@ public class ScreenSharingFragment extends Fragment implements AccPackSession.Se
         void onAnnotationsViewReady(AnnotationsView view);
 
         /**
-         * Invoked when the remote annotations view is ready.
+         * Invoked when the screensharing has been closed.
          *
-         * @param view The remote annotations view.
          */
-
-        void onAnnotationsRemoteViewReady(AnnotationsView view);
-
+        void onClosed();
     }
 
     /*
@@ -502,12 +500,6 @@ public class ScreenSharingFragment extends Fragment implements AccPackSession.Se
     protected void onAnnotationsViewReady(AnnotationsView view){
         if ( mListener != null ){
             mListener.onAnnotationsViewReady(view);
-        }
-    }
-
-    protected void onAnnotationsRemoteViewReady(AnnotationsView view){
-        if ( mListener != null ){
-            mListener.onAnnotationsRemoteViewReady(view);
         }
     }
 
