@@ -9,7 +9,7 @@
 #import "ShareWholeScreenViewController.h"
 #import "ColorViewController.h"
 #import "AppDelegate.h"
-#import <OTScreenShareKit/OTScreenShareKit.h>
+#import "OTScreenSharer.h"
 
 @interface ShareWholeScreenViewController () <OTScreenShareDataSource>
 @property (weak, nonatomic) IBOutlet UIWebView *webView;
@@ -29,11 +29,19 @@
     UIBarButtonItem *previewBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Navigate" style:UIBarButtonItemStylePlain target:self action:@selector(navigateToOtherViews)];
     self.navigationItem.rightBarButtonItem = previewBarButtonItem;
 
-    self.screenSharer = [[OTScreenSharer alloc] initWithDataSource:self];
+    self.screenSharer = [[OTScreenSharer alloc] init];
+    self.screenSharer.dataSource = self;
     [self.screenSharer connectWithView:[UIApplication sharedApplication].keyWindow.rootViewController.view
                                handler:^(OTScreenShareSignal signal, NSError *error) {
         
-                                   NSLog(@"%@", error);
+                                   if (signal == OTScreenSharePublisherCreated) {
+                                       self.screenSharer.publisherView.frame = CGRectMake(10, 200, 100, 100);
+                                       [self.view addSubview:self.screenSharer.publisherView];
+                                   }
+                                   else if (signal == OTScreenShareSubscriberCreated) {
+                                       self.screenSharer.subscriberView.frame = CGRectMake(10, 80, 100, 100);
+                                       [self.view addSubview:self.screenSharer.subscriberView];
+                                   }
                                }];
 }
 
@@ -64,17 +72,31 @@
         [self performSegueWithIdentifier:@"ColorViewControllerSegue" sender:nil];
     }]];
     
-    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF AUDIO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF PUBLISHER AUDIO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         
         if (self.screenSharer.isScreenSharing) {
             self.screenSharer.publishAudio = !self.screenSharer.publishAudio;
         }
     }]];
     
-    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF VIDEO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF PUBLISHER VIDEO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         
         if (self.screenSharer.isScreenSharing) {
             self.screenSharer.publishVideo = !self.screenSharer.publishVideo;
+        }
+    }]];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF SUBSCRIBER AUDIO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        
+        if (self.screenSharer.isScreenSharing) {
+            self.screenSharer.subscribeToAudio = !self.screenSharer.subscribeToAudio;
+        }
+    }]];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"TURN ON/OFF SUBSCRIBER VIDEO" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        
+        if (self.screenSharer.isScreenSharing) {
+            self.screenSharer.subscribeToVideo = !self.screenSharer.subscribeToVideo;
         }
     }]];
     
@@ -82,11 +104,11 @@
         
         if (self.screenSharer.isScreenSharing) {
             
-            if (self.screenSharer.subscriberVideoContentMode == OTScreenShareVideoViewFit) {
-                self.screenSharer.subscriberVideoContentMode = OTScreenShareVideoViewFill;
+            if (self.screenSharer.subscriberVideoContentMode == OTVideoViewFit) {
+                self.screenSharer.subscriberVideoContentMode = OTVideoViewFill;
             }
             else {
-                self.screenSharer.subscriberVideoContentMode = OTScreenShareVideoViewFit;
+                self.screenSharer.subscriberVideoContentMode = OTVideoViewFit;
             }
         }
     }]];

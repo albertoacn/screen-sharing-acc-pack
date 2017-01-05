@@ -5,34 +5,26 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <OTAcceleratorPackUtil/OTAcceleratorPackUtil.h>
+#import "OTAcceleratorSession.h"
+#import "OTOneToOneCommunicator.h"
 
 typedef NS_ENUM(NSUInteger, OTScreenShareSignal) {
-    OTScreenShareSignalSessionDidConnect = 0,
-    OTScreenShareSignalSessionDidDisconnect,
-    OTScreenShareSignalSessionDidFail,
-    OTScreenShareSignalSessionStreamCreated,
-    OTScreenShareSignalSessionStreamDestroyed,
-    OTScreenShareSignalSessionDidBeginReconnecting,
-    OTScreenShareSignalSessionDidReconnect,
-    OTScreenShareSignalPublisherDidFail,
-    OTScreenShareSignalPublisherStreamCreated,
-    OTScreenShareSignalPublisherStreamDestroyed,
-    OTScreenShareSignalSubscriberDidConnect,
-    OTScreenShareSignalSubscriberDidFail,
-    OTScreenShareSignalSubscriberVideoDisabledByPublisher,
-    OTScreenShareSignalSubscriberVideoDisabledBySubscriber,
-    OTScreenShareSignalSubscriberVideoDisabledByBadQuality,
-    OTScreenShareSignalSubscriberVideoEnabledByPublisher,
-    OTScreenShareSignalSubscriberVideoEnabledBySubscriber,
-    OTScreenShareSignalSubscriberVideoEnabledByGoodQuality,
-    OTScreenShareSignalSubscriberVideoDisableWarning,
-    OTScreenShareSignalSubscriberVideoDisableWarningLifted,
-};
-
-typedef NS_ENUM(NSInteger, OTScreenShareVideoViewContentMode) {
-    OTScreenShareVideoViewFill,
-    OTScreenShareVideoViewFit
+    OTScreenSharePublisherCreated = 0,
+    OTScreenSharePublisherDestroyed,
+    OTScreenShareSubscriberCreated,
+    OTScreenShareSubscriberReady,
+    OTScreenShareSubscriberDestroyed,
+    OTScreenShareSubscriberVideoDisabledByPublisher,
+    OTScreenShareSubscriberVideoDisabledBySubscriber,
+    OTScreenShareSubscriberVideoDisabledByBadQuality,
+    OTScreenShareSubscriberVideoEnabledByPublisher,
+    OTScreenShareSubscriberVideoEnabledBySubscriber,
+    OTScreenShareSubscriberVideoEnabledByGoodQuality,
+    OTScreenShareSubscriberVideoDisableWarning,
+    OTScreenShareSubscriberVideoDisableWarningLifted,
+    OTScreenShareError,
+    OTScreenShareSessionDidBeginReconnecting,
+    OTScreenShareSessionDidReconnect
 };
 
 typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
@@ -41,11 +33,6 @@ typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
 
 @protocol OTScreenShareDataSource <NSObject>
 - (OTAcceleratorSession *)sessionOfOTScreenSharer:(OTScreenSharer *)screenSharer;
-@end
-
-@protocol OTScreenShareDelegate <NSObject>
-- (void)screenShareWithSignal:(OTScreenShareSignal)signal
-                        error:(NSError *)error;
 @end
 
 @interface OTScreenSharer : NSObject
@@ -58,49 +45,17 @@ typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
 @property (weak, nonatomic) id<OTScreenShareDataSource> dataSource;
 
 /**
- *  The object that acts as the delegate of the screen sharer.
- *
- *  The delegate must adopt the OTScreenShareDelegate protocol. The delegate is not retained.
- */
-@property (weak, nonatomic) id<OTScreenShareDelegate> delegate;
-
-/**
- *  Initialize a new `OTScreenSharer` instsance.
- *
- *  @return A new `OTScreenSharer` instsance.
- */
-- (instancetype)initWithDataSource:(id<OTScreenShareDataSource>)dataSource;
-
-/**
  *  Initialize a new `OTScreenSharer` instsance with a publisher name.
  *
  *  @return A new `OTScreenSharer` instsance.
  */
-- (instancetype)initWithName:(NSString *)name
-                  dataSource:(id<OTScreenShareDataSource>)dataSource;
-
-/**
- *  A boolean value that indicates whether the specified UIView is sharing.
- */
-@property (readonly, nonatomic) BOOL isScreenSharing;
+- (instancetype)initWithName:(NSString *)name;
 
 /**
  *  A string that represents the current communicator.
  *  If not specified, the value will be "system name-name specified by Setting", e.g. @"iOS-MyiPhone"
  */
-@property (nonatomic) NSString *name;
-
-/**
- *  Registers to the shared session: [OTAcceleratorSession] and perform publishing/subscribing automatically with a given UIView.
- *
- *  @param view The UIView to be shared
- *
- *  @return An error to indicate whether it connects successfully, non-nil if it fails.
- *
- *  @discussion Given an instance of UIView, it will publish a stream to OpenTok cloud as the video source. 
- *  If nil, the screen sharer is able to subscribe a audio/video stream automatically.
- */
-- (NSError *)connectWithView:(UIView *)view;
+@property (readonly, nonatomic) NSString *name;
 
 /**
  *  An alternative connect method with a completion block handler.
@@ -123,13 +78,18 @@ typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
  */
 - (void)updateView:(UIView *)view;
 
+/**
+ *  A boolean value that indicates whether the specified UIView is sharing.
+ */
+@property (readonly, nonatomic) BOOL isScreenSharing;
+
 #pragma mark - subscriber
 /**
  *  The scaling of the rendered video, as defined by the <OTScreenShareVideoViewContentMode> enum.
  *  The default value is OTVideoViewScaleBehaviorFill. 
  *  Set it to OTVideoViewScaleBehaviorFit to have the video shrink, as needed, so that the entire video is visible(with pillarboxing).
  */
-@property (nonatomic) OTScreenShareVideoViewContentMode subscriberVideoContentMode;
+@property (nonatomic) OTVideoViewContentMode subscriberVideoContentMode;
 
 /**
  *  The current dimensions of the video media track on the subscriber's stream.
@@ -152,7 +112,7 @@ typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
  *
  *  The subscriber view is available after OTScreenShareSignalSubscriberDidConnect being signaled.
  */
-@property (readonly, nonatomic) UIView *subscriberView;
+@property (readonly, nonatomic) OTVideoView *subscriberView;
 
 /**
  *  A boolean value to indicate whether the screen sharer subscripts to audio.
@@ -170,7 +130,7 @@ typedef void (^OTScreenShareBlock)(OTScreenShareSignal signal, NSError *error);
  *
  *  The publisher view is available after OTScreenShareSignalSessionDidConnect being signaled.
  */
-@property (readonly, nonatomic) UIView *publisherView;
+@property (readonly, nonatomic) OTVideoView *publisherView;
 
 /**
  *  A boolean value to indicate whether to publish audio.

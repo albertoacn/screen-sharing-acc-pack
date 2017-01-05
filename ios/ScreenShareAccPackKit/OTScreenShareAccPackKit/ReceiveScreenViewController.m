@@ -8,7 +8,7 @@
 
 #import "ReceiveScreenViewController.h"
 #import "AppDelegate.h"
-#import <OTScreenShareKit/OTScreenShareKit.h>
+#import "OTScreenSharer.h"
 
 @interface ReceiveScreenViewController () <OTScreenShareDataSource>
 @property (nonatomic) OTScreenSharer *screenSharer;
@@ -22,17 +22,18 @@
     UIBarButtonItem *previewBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Navigate" style:UIBarButtonItemStylePlain target:self action:@selector(navigateToOtherViews)];
     self.navigationItem.rightBarButtonItem = previewBarButtonItem;
     
-    self.screenSharer = [[OTScreenSharer alloc] initWithDataSource:self];
+    self.screenSharer = [[OTScreenSharer alloc] init];
+    self.screenSharer.dataSource = self;
     [self.screenSharer connectWithView:nil
                          handler:^(OTScreenShareSignal signal, NSError *error) {
                              
                              if (!error) {
                                  
-                                 if (signal == OTScreenShareSignalSessionDidConnect) {
+                                 if (signal == OTScreenSharePublisherCreated) {
                                      self.screenSharer.publishAudio = NO;
                                      self.screenSharer.subscribeToAudio = NO;
                                  }
-                                 else if (signal == OTScreenShareSignalSubscriberDidConnect) {
+                                 else if (signal == OTScreenShareSubscriberCreated) {
                                      
                                      [self.screenSharer.subscriberView removeFromSuperview];
                                      self.screenSharer.subscriberView.frame = self.view.bounds;
@@ -56,11 +57,11 @@
         
         if (self.screenSharer.isScreenSharing) {
             
-            if (self.screenSharer.subscriberVideoContentMode == OTScreenShareVideoViewFit) {
-                self.screenSharer.subscriberVideoContentMode = OTScreenShareVideoViewFill;
+            if (self.screenSharer.subscriberVideoContentMode == OTVideoViewFit) {
+                self.screenSharer.subscriberVideoContentMode = OTVideoViewFill;
             }
             else {
-                self.screenSharer.subscriberVideoContentMode = OTScreenShareVideoViewFit;
+                self.screenSharer.subscriberVideoContentMode = OTVideoViewFit;
             }
         }
     }]];
